@@ -1,0 +1,13 @@
+/* Light touch of team branding inside the admin panel. */
+/* Bigger tap targets for editing from a phone */
+@media (max-width: 768px) {
+  .btn {
+    min-height: 44px;
+  }
+}
+
+/* Help text a bit easier to read */
+.field-description {
+  font-size: 0.95em;
+  line-height: 1.45;
+}

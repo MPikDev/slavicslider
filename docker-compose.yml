@@ -1,0 +1,57 @@
+# Slavic Sliders: website + database
+#   Start / update:  docker compose up -d --build
+#   Logs:            docker compose logs -f app
+#   Stop:            docker compose down          (data is kept)
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: slavic
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: slavicsliders
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U slavic -d slavicsliders"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    # Only exposed on this machine (for `npm run dev`, backups, psql). Remove if not needed.
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      MEDIA_DIR: /app/media
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    volumes:
+      # Uploaded photos live on the server's disk, outside the container
+      - ./data/media:/app/media
+      # Database migrations are generated here on first start; commit them to git
+      - ./src/migrations:/app/src/migrations
+      # Seed images (used by `docker compose exec app npm run seed`)
+      - ./seed:/app/seed:ro
+
+  # ── Optional: Cloudflare Tunnel (public HTTPS on your own domain, no port forwarding) ──
+  # 1. Follow README → "Adding a domain + Cloudflare Tunnel" to get a tunnel token
+  # 2. Put it in .env as CLOUDFLARE_TUNNEL_TOKEN=...
+  # 3. Uncomment the service below and run: docker compose up -d
+  #
+  # cloudflared:
+  #   image: cloudflare/cloudflared:latest
+  #   restart: unless-stopped
+  #   command: tunnel --no-autoupdate run
+  #   environment:
+  #     TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+  #   depends_on:
+  #     - app
