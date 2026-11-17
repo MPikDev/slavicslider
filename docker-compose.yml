@@ -33,7 +33,7 @@ services:
       db:
         condition: service_healthy
     ports:
-      - "3000:3000"
+      - "3002:3000"
     volumes:
       # Uploaded photos live on the server's disk, outside the container
       - ./data/media:/app/media
